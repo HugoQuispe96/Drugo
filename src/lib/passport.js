@@ -29,18 +29,22 @@ passport.use('local.signup', new LocalStrategy({
   passwordField: 'password',
   passReqToCallback: true
 }, async (req, username, password, done) => {
-
-  const { fullname } = req.body;
-  let newUser = {
-    fullname,
-    username,
-    password
-  };
-  newUser.password = await helpers.encryptPassword(password);
-  // Saving in the Database
-  const result = await pool.query('INSERT INTO users SET ? ', newUser);
-  newUser.id = result.insertId;
-  return done(null, newUser);
+  const rows = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+  if (rows.length > 0) {
+    return done(null, false, req.flash('message', 'Nombre de usuario no disponible'));
+  } else {
+    const { fullname } = req.body;
+    let newUser = {
+      fullname,
+      username,
+      password
+    };
+    newUser.password = await helpers.encryptPassword(password);
+    // Saving in the Database
+    const result = await pool.query('INSERT INTO users SET ? ', newUser);
+    newUser.id = result.insertId;
+    return done(null, newUser, req.flash('success', 'Bienvenido ' + newUser.username));
+  }
 }));
 
 passport.serializeUser((user, done) => {
