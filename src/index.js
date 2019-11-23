@@ -1,4 +1,7 @@
 const express = require('express');
+const app = express();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
 const morgan = require('morgan');
 const path = require('path');
 const exphbs = require('express-handlebars');
@@ -7,11 +10,9 @@ const passport = require('passport');
 const flash = require('connect-flash');
 const MySQLStore = require('express-mysql-session')(session);
 const bodyParser = require('body-parser');
-
 const { database } = require('./keys');
 
 // Intializations
-const app = express();
 require('./lib/passport');
 
 // Settings
@@ -48,16 +49,23 @@ app.use((req, res, next) => {
   app.locals.user = req.user;
   next();
 });
+// Socket
+io.on('connection', function(socket){
+  socket.on('flujo', function(image){
+      io.emit('flujo', image);
+  });
+});
 
 // Routes
 app.use(require('./routes/index'));
 app.use(require('./routes/authentication'));
 app.use('/links', require('./routes/links'));
+app.use('/drone', require('./routes/drone'));
 
 // Public
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Starting
-app.listen(app.get('port'), () => {
+http.listen(app.get('port'), () => {
   console.log('Server is in port', app.get('port'));
 });
